@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  redis-aof:
+    image: redis:alpine
+    command: redis-server --appendonly yes
+    ports:
+      - target: 6379
+        published: 6379
+        protocol: tcp
+        mode: host
+    volumes:
+        - redis-aof_data:/data
+        - ./redis-configs/redis-aof.conf:/etc/redis.conf
+    restart: always
+    environment:
+      - REDIS_REPLICATION_MODE=master
+
+  redis-rdb:
+    image: redis:alpine
+    command: redis-server --appendonly no
+    ports:
+      - target: 6379
+        published: 6380
+        protocol: tcp
+        mode: host
+    volumes:
+        - redis-rdb_data:/data
+        - ./redis-configs/redis-rdb.conf:/etc/redis.conf
+    restart: always
+    environment:
+      - REDIS_REPLICATION_MODE=master
+
+  beanstalkd:
+    image: ferri/beanstalkd
+    volumes:
+      - 'beanstalkd_data:/data'
+
+  beanstalkd-console:
+    image: schickling/beanstalkd-console
+    ports:
+      - 2080:2080
+    environment:
+      BEANSTALKD_PORT_11300_TCP_ADDR: beanstalkd
+    links:
+      - beanstalkd
+
+  benchmark:
+    container_name: benchmark
+    restart: on-failure
+    build:
+      context: ./benchmark
+    ports:
+      - 8080:80
+    depends_on:
+      - redis-aof
+      - redis-rdb
+      - beanstalkd
+
+volumes:
+  beanstalkd_data:
+    driver: local
+  redis-aof_data:
+    driver: local
+  redis-rdb_data:
+    driver: local
