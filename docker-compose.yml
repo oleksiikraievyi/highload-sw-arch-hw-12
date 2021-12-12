@@ -45,11 +45,11 @@ services:
     links:
       - beanstalkd
 
-  benchmark:
-    container_name: benchmark
+  app:
+    container_name: app
     restart: on-failure
     build:
-      context: ./benchmark
+      context: ./app
     ports:
       - 8080:80
     depends_on:
